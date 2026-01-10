@@ -1,0 +1,14 @@
+{
+    "autoload": {
+        "psr-4": {
+            "taskforce\\": "public/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Александр Арнаутов",
+            "email": "282arni@gmail.com"
+        }
+    ],
+    "require": {}
+}
