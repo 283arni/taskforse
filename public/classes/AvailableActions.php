@@ -2,109 +2,130 @@
 
 namespace taskforce\classes;
 
+use DateTime;
+use taskforce\classes\actions\AbstractAction;
+use taskforce\classes\actions\CancelAction;
+use taskforce\classes\actions\CompleteAction;
+use taskforce\classes\actions\DenyAction;
+use taskforce\classes\actions\ResponseAction;
+
 class AvailableActions
 {
-    private int|null $employeeId;
-    private int $customerId;
-    private string $status;
-
     const STATUS_NEW = 'new';
-    const STATUS_CANCEL = "cancel";
-    const STATUS_AT_WORK = "at_work";
-    const STATUS_COMPLETED = "completed";
-    const STATUS_FAILED = "failed";
+    const STATUS_IN_PROGRESS = 'proceed';
+    const STATUS_CANCEL = 'cancel';
+    const STATUS_COMPLETE = 'complete';
+    const STATUS_EXPIRED = 'expired';
 
+    const ROLE_PERFORMER = 'performer';
+    const ROLE_CLIENT = 'customer';
 
-    const ACTION_COMPLETED = "completed";
-    const ACTION_REJECT = "reject";
-    const ACTION_CANCEL = "cancel";
-    const ACTION_RESPOND = "respond";
+    private $performerId = null;
+    private $clientId = null;
 
+    private $status = null;
+    private $finishDate = null;
 
-    function __construct(string $status, int $customerId, ?int $employeeId = null)
+    /**
+     * AvailableActionsStrategy constructor.
+     * @param string $status
+     * @param int $performerId
+     * @param int $clientId
+     */
+    public function __construct(string $status, ?int $performerId, int $clientId)
     {
         $this->setStatus($status);
 
-        $this->employeeId = $employeeId;
-        $this->customerId = $customerId;
+        $this->performerId = $performerId;
+        $this->clientId = $clientId;
     }
 
+    public function setFinishDate(DateTime $dt) {
+        $curDate = new DateTime();
 
-    /**
-     * @return string[]
-     */
-    public function getStatusesMap(): array
-    {
-        return [
-            self::STATUS_NEW => "Новый",
-            self::STATUS_AT_WORK => "В работе",
-            self::STATUS_COMPLETED => "Выполнено",
-            self::STATUS_CANCEL => "Отменено",
-            self::STATUS_FAILED => "Провалено",
-        ];
-    }
-
-    /**
-     * @return string[]
-     */
-    public function getActionsMap(): array
-    {
-        return [
-            self::ACTION_COMPLETED => "Выполнено",
-            self::ACTION_CANCEL => "Отменено",
-            self::ACTION_RESPOND => "Откликнуться",
-            self::ACTION_REJECT => "Отказаться",
-        ];
-    }
-
-    /**
-     * @param string $status
-     * @return void
-     */
-    public function setStatus(string $status): void
-    {
-        $statuses = [
-            self::STATUS_NEW,
-            self::STATUS_CANCEL,
-            self::STATUS_AT_WORK,
-            self::STATUS_COMPLETED,
-            self::STATUS_FAILED,
-        ];
-
-        if (in_array($status, $statuses)) {
-            $this->status = $status;
+        if ($dt > $curDate) {
+            $this->finishDate = $dt;
         }
     }
 
-    /**
-     * @param string $action
-     * @return string|null
-     */
-    public function getNextStatus(string $action): ?string
+    public function getAvailableActions(string $role, int $id)
+    {
+        $statusActions = $this->statusAllowedActions()[$this->status];
+        $roleActions = $this->roleAllowedActions()[$role];
+
+        $allowedActions = array_intersect($statusActions, $roleActions);
+
+        $allowedActions = array_filter($allowedActions, function ($action) use ($id) {
+            return $action::checkRights($id, $this->performerId, $this->clientId);
+        });
+
+        return array_values($allowedActions);
+    }
+
+    public function getNextStatus(?string $action)
     {
         $map = [
-            self::ACTION_COMPLETED => self::STATUS_COMPLETED,
-            self::ACTION_CANCEL => self::STATUS_CANCEL,
-            self::ACTION_REJECT => self::STATUS_CANCEL,
+            CompleteAction::class => self::STATUS_COMPLETE,
+            CancelAction::class => self::STATUS_CANCEL,
+            DenyAction::class => self::STATUS_CANCEL,
+            ResponseAction::class => null
         ];
 
         return $map[$action];
     }
 
-    /**
-     * Получить доступные actions в статусе
-     *
-     * @param string $status
-     * @return string[]
-     */
-    public function getAllowedActions(string $status): array
+    public function setStatus(string $status)
     {
-        $allowedActions = [
-            self::STATUS_AT_WORK => [self::ACTION_COMPLETED, self::ACTION_CANCEL],
-            self::STATUS_NEW => [self::ACTION_REJECT, self::ACTION_RESPOND],
+        $availableStatuses = [self::STATUS_NEW, self::STATUS_IN_PROGRESS, self::STATUS_CANCEL, self::STATUS_COMPLETE,
+            self::STATUS_EXPIRED];
+
+        if (in_array($status, $availableStatuses)) {
+            $this->status = $status;
+        }
+    }
+
+    /**
+     * Возвращает действия, доступные для каждой роли
+     * @return array
+     */
+    private function roleAllowedActions()
+    {
+        $map = [
+            self::ROLE_CLIENT => [CancelAction::class, CompleteAction::class],
+            self::ROLE_PERFORMER => [ResponseAction::class, DenyAction::class]
         ];
 
-        return $allowedActions[$status];
+        return $map;
     }
+
+    /**
+     * Возвращает действия, доступные для каждого статуса
+     * @return array
+     */
+    private function statusAllowedActions() {
+        $map = [
+            self::STATUS_CANCEL => [],
+            self::STATUS_COMPLETE => [],
+            self::STATUS_IN_PROGRESS => [DenyAction::class, CompleteAction::class],
+            self::STATUS_NEW => [CancelAction::class, ResponseAction::class],
+            self::STATUS_EXPIRED => []
+        ];
+
+        return $map;
+    }
+
+    private function getStatusMap()
+    {
+        $map = [
+            self::STATUS_NEW => [self::STATUS_EXPIRED, self::STATUS_CANCEL],
+            self::STATUS_IN_PROGRESS => [self::STATUS_CANCEL, self::STATUS_COMPLETE],
+            self::STATUS_CANCEL => [],
+            self::STATUS_COMPLETE => [],
+            self::STATUS_EXPIRED => [self::STATUS_CANCEL]
+        ];
+
+        return $map;
+    }
+
 }
 

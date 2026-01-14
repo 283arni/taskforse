@@ -1,8 +1,20 @@
 <?php
-require_once "../vendor/autoload.php";
+require_once '../vendor/autoload.php';
+ini_set('assert.exception', 1);
 
+use taskforce\classes\actions\ResponseAction;
 use taskforce\classes\AvailableActions;
 
-$strategy = new AvailableActions('new', 1);
+try {
+    $strategy = new AvailableActions(AvailableActions::STATUS_NEW, 3, 1);
 
-assert($strategy->getNextStatus('new') == AvailableActions::STATUS_CANCEL, 'sad');
+    $nextStatus = $strategy->getNextStatus(null);
+} catch (false) {
+    die('error');
+}
+
+var_dump('new -> performer', $strategy->getAvailableActions(AvailableActions::ROLE_PERFORMER, 2));
+var_dump('new -> client,alien', $strategy->getAvailableActions(AvailableActions::ROLE_CLIENT, 2));
+var_dump('new -> client,same', $strategy->getAvailableActions(AvailableActions::ROLE_CLIENT, 1));
+
+var_dump('proceed -> performer,same', $strategy->getAvailableActions(AvailableActions::ROLE_PERFORMER, 3));
