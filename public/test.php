@@ -8,7 +8,7 @@ use taskforce\classes\AvailableActions;
 try {
     $strategy = new AvailableActions(AvailableActions::STATUS_NEW, 3, 1);
 
-    $nextStatus = $strategy->getNextStatus(null);
+    $nextStatus = $strategy->getNextStatus(ResponseAction::class);
 } catch (false) {
     die('error');
 }
