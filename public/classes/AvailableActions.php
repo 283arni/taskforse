@@ -8,6 +8,7 @@ use taskforce\classes\actions\CancelAction;
 use taskforce\classes\actions\CompleteAction;
 use taskforce\classes\actions\DenyAction;
 use taskforce\classes\actions\ResponseAction;
+use taskforce\classes\exceptions\StatusException;
 
 class AvailableActions
 {
@@ -62,7 +63,7 @@ class AvailableActions
         return array_values($allowedActions);
     }
 
-    public function getNextStatus($action)
+    public function getNextStatus(string $action): ?string
     {
         $map = [
             CompleteAction::class => self::STATUS_COMPLETE,
@@ -70,7 +71,7 @@ class AvailableActions
             DenyAction::class => self::STATUS_CANCEL,
             ResponseAction::class => null
         ];
-
+            
         return $map[$action];
     }
 
@@ -79,9 +80,11 @@ class AvailableActions
         $availableStatuses = [self::STATUS_NEW, self::STATUS_IN_PROGRESS, self::STATUS_CANCEL, self::STATUS_COMPLETE,
             self::STATUS_EXPIRED];
 
-        if (in_array($status, $availableStatuses)) {
-            $this->status = $status;
+        if (!in_array($status, $availableStatuses)) {
+            throw new StatusException("Нет такого статуса: $status");
         }
+
+        $this->status = $status;
     }
 
     /**

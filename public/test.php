@@ -2,19 +2,22 @@
 require_once '../vendor/autoload.php';
 ini_set('assert.exception', 1);
 
-use taskforce\classes\actions\ResponseAction;
-use taskforce\classes\AvailableActions;
+use taskforce\classes\converters\CsvToSqlConverter;
+
+$csvData = [
+    'categories' => './data/categories.csv',
+    'cities' => './data/cities.csv',
+];
 
 try {
-    $strategy = new AvailableActions(AvailableActions::STATUS_NEW, 3, 1);
+    $converter = new CsvToSqlConverter($csvData);
+    $converter -> convert();
+    $sqlData = $converter->getSqlData();
 
-    $nextStatus = $strategy->getNextStatus(ResponseAction::class);
-} catch (false) {
-    die('error');
+    foreach ($sqlData as $key => $sql) {
+        file_put_contents("$key.sql", $sql);
+        echo "Конвертация завершена. SQL сохранён в $key.sql\n";
+    }
+} catch (Exception $e) {
+    echo "Ошибка: " . $e->getMessage() . "\n";
 }
-
-var_dump('new -> performer', $strategy->getAvailableActions(AvailableActions::ROLE_PERFORMER, 2));
-var_dump('new -> client,alien', $strategy->getAvailableActions(AvailableActions::ROLE_CLIENT, 2));
-var_dump('new -> client,same', $strategy->getAvailableActions(AvailableActions::ROLE_CLIENT, 1));
-
-var_dump('proceed -> performer,same', $strategy->getAvailableActions(AvailableActions::ROLE_PERFORMER, 3));
