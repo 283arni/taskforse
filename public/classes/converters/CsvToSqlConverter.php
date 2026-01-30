@@ -13,12 +13,12 @@ class CsvToSqlConverter
 
     public function __construct(array $csvFilesPath)
     {
-        $this -> csvFilesPath = $csvFilesPath;
+        $this->csvFilesPath = $csvFilesPath;
     }
 
     private function getFiles(): void
     {
-        foreach ($this -> csvFilesPath as $key => $csvFilePath) {
+        foreach ($this->csvFilesPath as $key => $csvFilePath) {
             $this->csvFiles[$key] = new SplFileObject($csvFilePath, 'r');
         }
     }
@@ -29,32 +29,32 @@ class CsvToSqlConverter
 
         foreach ($this->csvFiles as $key => $csvFile) {
 
-        $csvFile->setFlags(SplFileObject::READ_CSV);
+            $csvFile->setFlags(SplFileObject::READ_CSV);
 
-        $sql = '';
-        $header = null;
+            $sql = '';
+            $header = null;
 
-        // Читаем первую строку как заголовок, если нужно
-        if (!$csvFile->eof()) {
-            $header = $csvFile->current();
-            $csvFile->next();
-        }
-
-        while (!$csvFile->eof()) {
-            $row = $csvFile->current();
-            $csvFile->next();
-
-            if ($row === [null] || count(array_filter($row)) === 0) {
-                continue; // Пропускаем пустые строки
+            // Читаем первую строку как заголовок, если нужно
+            if (!$csvFile->eof()) {
+                $header = $csvFile->current();
+                $csvFile->next();
             }
 
-            $values = array_map([$this, 'escape'], $row);
-            $columns = $header ? '`' . implode('`, `', $header) . '`' : $this->generateColumnPlaceholders(count($values));
+            while (!$csvFile->eof()) {
+                $row = $csvFile->current();
+                $csvFile->next();
 
-            $sql .= "INSERT INTO `$key` ($columns) VALUES ('" . implode("', '", $values) . "');\n";
-        }
+                if ($row === [null] || count(array_filter($row)) === 0) {
+                    continue; // Пропускаем пустые строки
+                }
 
-          $this->sqlData[$key] = $sql;
+                $values = array_map([$this, 'escape'], $row);
+                $columns = $header ? '`' . implode('`, `', $header) . '`' : $this->generateColumnPlaceholders(count($values));
+
+                $sql .= "INSERT INTO `$key` ($columns) VALUES ('" . implode("', '", $values) . "');\n";
+            }
+
+            $this->sqlData[$key] = $sql;
         }
     }
 

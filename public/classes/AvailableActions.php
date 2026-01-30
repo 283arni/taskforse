@@ -41,7 +41,8 @@ class AvailableActions
         $this->clientId = $clientId;
     }
 
-    public function setFinishDate(DateTime $dt) {
+    public function setFinishDate(DateTime $dt)
+    {
         $curDate = new DateTime();
 
         if ($dt > $curDate) {
@@ -71,14 +72,19 @@ class AvailableActions
             DenyAction::class => self::STATUS_CANCEL,
             ResponseAction::class => null
         ];
-            
+
         return $map[$action];
     }
 
     public function setStatus(string $status)
     {
-        $availableStatuses = [self::STATUS_NEW, self::STATUS_IN_PROGRESS, self::STATUS_CANCEL, self::STATUS_COMPLETE,
-            self::STATUS_EXPIRED];
+        $availableStatuses = [
+            self::STATUS_NEW,
+            self::STATUS_IN_PROGRESS,
+            self::STATUS_CANCEL,
+            self::STATUS_COMPLETE,
+            self::STATUS_EXPIRED
+        ];
 
         if (!in_array($status, $availableStatuses)) {
             throw new StatusException("Нет такого статуса: $status");
@@ -105,7 +111,8 @@ class AvailableActions
      * Возвращает действия, доступные для каждого статуса
      * @return array
      */
-    private function statusAllowedActions() {
+    private function statusAllowedActions()
+    {
         $map = [
             self::STATUS_CANCEL => [],
             self::STATUS_COMPLETE => [],
@@ -129,6 +136,4 @@ class AvailableActions
 
         return $map;
     }
-
 }
-
